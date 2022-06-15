@@ -27,13 +27,14 @@ class ChatServer:
         self.response_type = ''
         self.name = ''
         self.threads = []
+        self.last_read = None
 
     def bind(self):
         self.sock.bind((self.host, self.port))
 
     def handle_client(self, conn):
         while True:
-            self.recieve(conn)
+            print(self.recieve(conn))
 
     def listen(self):
         self.sock.listen()
@@ -79,7 +80,8 @@ class ChatServer:
                 'errors': []
             }
         elif type == 'get_messages':
-            message = get_messages(self.name)
+            self.last_read = body[0]['params']['last_read'] 
+            message = get_messages(self.name, self.last_read)
             response = {
                 'action': 'get_messages',
                 'result': 'ok',
