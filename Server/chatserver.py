@@ -2,23 +2,18 @@ import json
 import socket
 import struct
 import threading
-
-
-from message import save_message
-from message import get_messages
-
+from datetime import datetime 
+from requesthandler import request_factory
+from user import User
 
 MAX_HEADER_SIZE = 2 ** 16 - 1
 PREHEADER_SIZE = 2
-
 
 class ChatServer:
     def __init__(self, host, port):
         self.host = host
         self.port = port
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        # self.conn = None
-        # self.addr = None
         self.send_header = {
             'Content-type': 'application/json',
             'Content-encoding': 'utf-8'
@@ -28,6 +23,7 @@ class ChatServer:
         self.name = ''
         self.threads = []
         self.last_read = None
+        self.user = User()
 
     def bind(self):
         self.sock.bind((self.host, self.port))
@@ -47,50 +43,60 @@ class ChatServer:
         header_len = self._read_preheader(conn)
         header = self._read_header(header_len, conn)
         body = self._read_body(header, conn)
-        self.response(conn, body)
-        return {
-            'header': header,
-            'body': body[0],
-            'raw_body': body[1]
-        }
+        # self.response(conn, body)
 
-    def response(self, conn, body):
         type = body[0]['action']
-        # Will probably use a factory soon
-        if type == 'login':
-            response = {
-                'action': 'login',
-                'result': 'ok',
-                'errors': []
-            }
-            self.name = body[0]['params']['name']
-        elif type == 'send_messages':
-            all_messages = body[0]['params']['messages']
-            for i in all_messages:
-                save_message(body[0]['params']['messages'][0]['to'], self.name, i['msg'])
-            response = {
-                'action': 'send_messages',
-                'result': 'ok',
-                'errors': []
-            }
-        elif type == 'logout':
-            response = {
-                'action': 'logout',
-                'result': 'ok',
-                'errors': []
-            }
-        elif type == 'get_messages':
-            self.last_read = body[0]['params']['last_read'] 
-            message = get_messages(self.name, self.last_read)
-            response = {
-                'action': 'get_messages',
-                'result': 'ok',
-                'messages': message,
-                'errors': []
-            }
-            
+      
+        request = request_factory(type)
+        response = request.response(body, self.user)
+
         send_response = json.dumps(response)
+
         self.send(send_response, conn)
+        
+        # return {
+        #     'header': header,
+        #     'body': body[0],
+        #     'raw_body': body[1]
+        # }
+
+    # def response(self, conn, body):
+    #     type = body[0]['action']
+    #     request_factory(type)
+        # Will probably use a factory soon
+        # if type == 'login':
+        #     response = {
+        #         'action': 'login',
+        #         'result': 'ok',
+        #         'errors': []
+        #     }
+        #     self.name = body[0]['params']['name']
+        # elif type == 'send_messages':
+        #     all_messages = body[0]['params']['messages']
+        #     for i in all_messages:
+        #         save_message(body[0]['params']['messages'][0]['to'], self.name, i['msg'])
+        #     response = {
+        #         'action': 'send_messages',
+        #         'result': 'ok',
+        #         'errors': []
+        #     }
+        # elif type == 'logout':
+        #     response = {
+        #         'action': 'logout',
+        #         'result': 'ok',
+        #         'errors': []
+        #     }
+        # elif type == 'get_messages':
+        #     self.last_read = body[0]['params']['last_read'] 
+        #     message = get_messages(self.name, self.last_read)
+        #     response = {
+        #         'action': 'get_messages',
+        #         'result': 'ok',
+        #         'messages': message,
+        #         'errors': []
+        #     }
+            
+        
 
     def send(self, message, conn):
         body = bytes(message.encode('utf-8'))
@@ -139,7 +145,7 @@ class ChatServer:
         self._read_buffer += conn.recv(1024)
 
     # def log(self, username, type, error):
-    #     format = (f'<{datetime.datetime.now()}> (ISO 8601):<{username}>:<{type}>:<{error}>')
+    #     format = (f'{datetime.utcnow().isoformat()} (ISO 8601):{username}:{type}:{error}')
     #     with open('log.txt', 'a') as f:
     #         f.write(format)
 
