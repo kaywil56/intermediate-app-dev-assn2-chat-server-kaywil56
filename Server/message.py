@@ -24,25 +24,28 @@ Base.metadata.create_all(engine)
 
 session = Session(engine)
 
-
 def save_message(going_to, username, message):
     time_sent = datetime.utcnow()
     time = time_sent and time_sent.isoformat()
-
-    new_message = Message(to=going_to, coming_from=username, msg=message, time_sent=time)
-    session.add(new_message)
-    session.commit()
-
+    print('message: ' + message)
+    print('going to: ' + going_to)
+    if len(message) == 0 or len(going_to) == 0:
+        raise Exception('You cant leave fields empty.')
+    else:
+        new_message = Message(to=going_to, coming_from=username, msg=message, time_sent=time)
+        session.add(new_message)
+        session.commit()
 
 def get_messages(user, last_read):
     msg_list = []
     if last_read is None:
-        print("none")
         query = select(Message).where(Message.to == user)
     else:
         query = select(Message).where(Message.to == user).filter(Message.time_sent > last_read)
-
     messages = session.execute(query).scalars()
     for i in messages:
         msg_list.append(i.msg)
-    return msg_list
+    if len(msg_list) == 0:
+        raise Exception('No messages available.')
+    else:
+        return msg_list

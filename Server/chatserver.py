@@ -2,9 +2,9 @@ import json
 import socket
 import struct
 import threading
-from datetime import datetime 
 from requesthandler import request_factory
 from user import User
+from datetime import datetime
 
 MAX_HEADER_SIZE = 2 ** 16 - 1
 PREHEADER_SIZE = 2
@@ -19,10 +19,7 @@ class ChatServer:
             'Content-encoding': 'utf-8'
         }
         self._read_buffer = b''
-        self.response_type = ''
-        self.name = ''
-        self.threads = []
-        self.last_read = None
+        self.users = []
         self.user = User()
 
     def bind(self):
@@ -43,67 +40,19 @@ class ChatServer:
         header_len = self._read_preheader(conn)
         header = self._read_header(header_len, conn)
         body = self._read_body(header, conn)
-        # self.response(conn, body)
-
         type = body[0]['action']
-      
         request = request_factory(type)
         response = request.response(body, self.user)
-
+        errors = str(response['result'])
+        self._log(type, errors)
         send_response = json.dumps(response)
-
         self.send(send_response, conn)
-        
-        # return {
-        #     'header': header,
-        #     'body': body[0],
-        #     'raw_body': body[1]
-        # }
-
-    # def response(self, conn, body):
-    #     type = body[0]['action']
-    #     request_factory(type)
-        # Will probably use a factory soon
-        # if type == 'login':
-        #     response = {
-        #         'action': 'login',
-        #         'result': 'ok',
-        #         'errors': []
-        #     }
-        #     self.name = body[0]['params']['name']
-        # elif type == 'send_messages':
-        #     all_messages = body[0]['params']['messages']
-        #     for i in all_messages:
-        #         save_message(body[0]['params']['messages'][0]['to'], self.name, i['msg'])
-        #     response = {
-        #         'action': 'send_messages',
-        #         'result': 'ok',
-        #         'errors': []
-        #     }
-        # elif type == 'logout':
-        #     response = {
-        #         'action': 'logout',
-        #         'result': 'ok',
-        #         'errors': []
-        #     }
-        # elif type == 'get_messages':
-        #     self.last_read = body[0]['params']['last_read'] 
-        #     message = get_messages(self.name, self.last_read)
-        #     response = {
-        #         'action': 'get_messages',
-        #         'result': 'ok',
-        #         'messages': message,
-        #         'errors': []
-        #     }
-            
-        
-
+    
     def send(self, message, conn):
         body = bytes(message.encode('utf-8'))
         header = self._header(len(body))
         preheader = self._preheader(len(header))
         message = preheader + header + body
-        # send the message
         conn.sendall(message)
 
     def _preheader(self, length):
@@ -144,24 +93,16 @@ class ChatServer:
     def _read_sock(self, conn):
         self._read_buffer += conn.recv(1024)
 
-    # def log(self, username, type, error):
-    #     format = (f'{datetime.utcnow().isoformat()} (ISO 8601):{username}:{type}:{error}')
-    #     with open('log.txt', 'a') as f:
-    #         f.write(format)
+    def _log(self, type, error):
+        date_time = datetime.utcnow().isoformat()
+        format = (f'{date_time} (ISO 8601):{self.user.username}:{type}:{error}')
+        with open('log.txt', 'a') as f:
+            f.write(format + '\n')
 
-    # def close(self):
-    #     self.conn.close()
+def main():
+    chat_server = ChatServer('127.0.0.1', 65432)
+    chat_server.bind()
+    chat_server.listen()
 
-
-chat_server = ChatServer('127.0.0.1', 65432)
-
-chat_server.bind()
-chat_server.listen()
-
-# chat_server.accept()
-# message = chat_server.recieve()
-# print(message)
-# while message:
-#     message = chat_server.recieve()
-#     print(message)
-# chat_server.close()
+if __name__ == '__main__':
+    main()
