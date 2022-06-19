@@ -1,16 +1,21 @@
+""" A factory pattern for sending back the right response. """
+
 from message import save_message
 from message import get_messages
 
 
 class GetRequest:
+    """ A class for handling a get request"""
+
     def response(self, body, user):
+        """ Calls the get_messages method to retreive a clients messages and returns the appropriate responsec"""
         response = {
             'action': 'get_messages',
             'result': '',
             'messages': [],
             'errors': []
         }
-        if user.is_logged_in:  
+        if user.is_logged_in:
             user.last_read = body[0]['params']['last_read']
             try:
                 messages = get_messages(user.username, user.last_read)
@@ -26,7 +31,10 @@ class GetRequest:
 
 
 class SendRequest:
+    """ A class for handling a send request"""
+
     def response(self, body, user):
+        """Calls the send_messages method to save a clients messages and returns the appropriate response"""
         response = {
             'action': 'send_messages',
             'result': 'ok',
@@ -50,14 +58,17 @@ class SendRequest:
 
 
 class LogoutRequest:
+    """ A class for handling a logout request"""
+
     def response(self, body, user):
+        """ Sets the current user logged in and returns the appropriate response """
         response = {
             'action': 'logout',
             'result': 'ok',
             'errors': []
         }
         if user.is_logged_in:
-            user.is_logged_in = False         
+            user.is_logged_in = False
             return response
         else:
             response['result'] = 'error'
@@ -66,7 +77,10 @@ class LogoutRequest:
 
 
 class LoginRequest:
+    """ A class for handling a login request"""
+
     def response(self, body, user):
+        """ Sets the current user logged out and returns the appropriate response """
         user.is_logged_in = True
         user.username = body[0]['params']['name']
         response = {
@@ -78,11 +92,12 @@ class LoginRequest:
 
 
 def request_factory(type):
+    """ Selects the right response based on the given request type"""
     REQUEST_TYPES = {
         'get_messages': GetRequest,
         'send_messages': SendRequest,
         'logout': LogoutRequest,
-        'login': LoginRequest  
+        'login': LoginRequest
     }
 
     return REQUEST_TYPES[type]()

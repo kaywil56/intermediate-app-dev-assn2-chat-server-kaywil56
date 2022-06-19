@@ -4,7 +4,7 @@ import struct
 import threading
 from requesthandler import request_factory
 from user import User
-from datetime import datetime
+from log import Log
 
 MAX_HEADER_SIZE = 2 ** 16 - 1
 PREHEADER_SIZE = 2
@@ -27,6 +27,7 @@ class ChatServer:
         self._read_buffer = b''
         self.users = []
         self.user = User()
+        self.logger = Log()
 
     def bind(self):
         """ Binds the socket to the given host/port."""
@@ -56,7 +57,7 @@ class ChatServer:
         request = request_factory(type)
         response = request.response(body, self.user)
         errors = str(response['result'])
-        self._log(type, errors)
+        self.logger.log_response(type, errors, self.user.username)
         send_response = json.dumps(response)
         self.send(send_response, conn)
     
@@ -114,12 +115,6 @@ class ChatServer:
         """Reads the socket"""
         self._read_buffer += conn.recv(1024)
 
-    def _log(self, type, error):
-        """Logs the response of a client request to a txt file"""
-        date_time = datetime.utcnow().isoformat()
-        format = (f'{date_time} (ISO 8601):{self.user.username}:{type}:{error}')
-        with open('log.txt', 'a') as f:
-            f.write(format + '\n')
 
 def main():
     chat_server = ChatServer('127.0.0.1', 65432)
