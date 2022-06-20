@@ -1,5 +1,7 @@
 """ A factory pattern for sending back the right response. """
 
+import sys
+sys.path.append('./Server')
 from message import save_message
 from message import get_messages
 
@@ -16,7 +18,7 @@ class GetRequest:
             'errors': []
         }
         if user.is_logged_in:
-            user.last_read = body[0]['params']['last_read']
+            user.last_read = body['params']['last_read']
             try:
                 messages = get_messages(user.username, user.last_read)
                 response['messages'] = messages
@@ -42,9 +44,9 @@ class SendRequest:
         }
         if user.is_logged_in:
             try:
-                all_messages = body[0]['params']['messages']
+                all_messages = body['params']['messages']
                 for i in all_messages:
-                    to = body[0]['params']['messages'][0]['to']
+                    to = body['params']['messages'][0]['to']
                     msg = i['msg']
                     save_message(to, user.username, msg)
             except Exception as e:
@@ -82,7 +84,7 @@ class LoginRequest:
     def response(self, body, user):
         """ Sets the current user logged out and returns the appropriate response """
         user.is_logged_in = True
-        user.username = body[0]['params']['name']
+        user.username = body['params']['name']
         response = {
             'action': 'login',
             'result': 'ok',

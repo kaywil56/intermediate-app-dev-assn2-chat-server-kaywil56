@@ -1,9 +1,6 @@
 import unittest
-from Server.requesthandler import GetRequest
-from Server.requesthandler import SendRequest
-from Server.requesthandler import LogoutRequest
-from Server.requesthandler import LoginRequest
-
+from Server.requesthandler import *
+from unittest.mock import Mock, patch
 
 
 class TestGetRequest(unittest.TestCase):
@@ -12,18 +9,66 @@ class TestGetRequest(unittest.TestCase):
 
     def test_valid_response(self):
         body = {'action': 'get_messages', 'params': {'last_read': None}}
-        username = 'test'
-        assertion = {'body': {'action': 'get_messages',
-                              'errors': [],
-                              'messages': ['Hello'],
-                              'result': ''},
-                     'header': {'Content-encoding': 'utf-8',
-                                'Content-length': 77,
-                                'Content-type': 'application/json'},
-                     'raw_body': '{"action": "get_messages", "result": "", "messages": '
-                     '["Hello"], "errors": []}'}
-        result = self.get.response(body, username)
-        self.assertIsInstance(result, (str))
+        user = Mock()
+        user.username = 'test'
+        assertion = {
+                        'action': 'get_messages',
+                        'errors': ['You have no messages.'],
+                        'messages': [],
+                        'result': 'error',           
+                    }
+        result = self.get.response(body, user)
+        self.assertEqual(result, assertion)
+
+
+class TestSendRequest(unittest.TestCase):
+    def setUp(self):
+        self.send = SendRequest()
+
+    def test_valid_response(self):
+        body =  {'action': 'send_messages', 'params': {'messages': [{'to': 'greg', 'msg': 'Hey, greg'}]}}
+        user = Mock()
+        user.username = 'test'
+        assertion = {
+                        'action': 'send_messages',
+                        'errors': [],
+                        'result': 'ok',           
+                    }
+        result = self.send.response(body, user)
+        self.assertEqual(result, assertion)
+
+
+class TestLoginRequest(unittest.TestCase):
+    def setUp(self):
+        self.login = LoginRequest()
+
+    def test_valid_response(self):
+        body = {'action': 'login', 'params': {'name': 'k'}}
+        user = Mock()
+        user.username = 'test'
+        assertion = {
+                        'action': 'login',
+                        'errors': [],
+                        'result': 'ok'
+                    }
+        result = self.login.response(body, user)
+        self.assertEqual(result, assertion)
+
+
+class TestLogoutRequest(unittest.TestCase):
+    def setUp(self):
+        self.logout = LogoutRequest()
+
+    def test_valid_response(self):
+        body = {'action': 'logout', 'params': None}
+        user = Mock()
+        user.username = 'test'
+        assertion = {
+                        'action': 'logout',
+                        'errors': [],
+                        'result': 'ok'
+                    }
+        result = self.logout.response(body, user)
         self.assertEqual(result, assertion)
 
 

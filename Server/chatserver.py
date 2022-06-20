@@ -55,11 +55,20 @@ class ChatServer:
         body = self._read_body(header, conn)
         type = body[0]['action']
         request = request_factory(type)
-        response = request.response(body, self.user)
+        response = request.response(body[0], self.user)
+        print('=========================')
+        print(response)
+        print('=========================')
         errors = str(response['result'])
         self.logger.log_response(type, errors, self.user.username)
         send_response = json.dumps(response)
         self.send(send_response, conn)
+        return {
+            'header': header,
+            'body': body[0],
+            'raw_body': body[1]
+        }
+
     
     def send(self, message, conn):
         """ Prepares the body, header and preheader to then be sent back to the client """
